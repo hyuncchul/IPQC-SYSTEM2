@@ -1,0 +1,172 @@
+{% extends "base.html" %}
+{% block content %}
+<div class="row mb-3 align-items-center">
+  <div class="col-md-6">
+    <h4 class="mb-0"><i class="bi bi-calendar3"></i>
+      실시간 QC 현황 &nbsp;
+      <span class="badge bg-primary">{{ date_str }}</span>
+      {% if date_str == today %}<span class="badge bg-success ms-1">TODAY</span>{% endif %}
+    </h4>
+  </div>
+  <div class="col-md-6 text-end">
+    <form class="d-inline-flex align-items-center gap-2">
+      <input type="date" class="form-control form-control-sm" id="dateSelect" value="{{ date_str }}" style="width:150px">
+      <button class="btn btn-sm btn-outline-primary" onclick="gotoDate()">조회</button>
+    </form>
+    <a href="/export/{{ date_str }}" class="btn btn-sm btn-success ms-2">
+      <i class="bi bi-file-earmark-excel"></i> Excel 다운로드
+    </a>
+    <button class="btn btn-sm btn-outline-secondary ms-1" onclick="location.reload()">
+      <i class="bi bi-arrow-clockwise"></i> 새로고침
+    </button>
+  </div>
+</div>
+
+<!-- 進度 Summary -->
+<div class="row mb-3">
+  {% set done_count = namespace(v=0) %}
+  {% set total_count = machine_list|length * 2 %}
+  {% for m in machine_list %}
+    {% if machine_status[m].morning %}{% set done_count.v = done_count.v + 1 %}{% endif %}
+    {% if machine_status[m].night %}{% set done_count.v = done_count.v + 1 %}{% endif %}
+  {% endfor %}
+  <div class="col-md-3 col-6 mb-2">
+    <div class="card text-center py-2">
+      <div class="fw-bold text-muted small">총 라인수</div>
+      <div class="fs-3 fw-bold text-primary">{{ machine_list|length }}</div>
+    </div>
+  </div>
+  <div class="col-md-3 col-6 mb-2">
+    <div class="card text-center py-2">
+      <div class="fw-bold text-muted small">입력완료 (早班+夜班)</div>
+      <div class="fs-3 fw-bold text-success">{{ done_count.v }}/{{ total_count }}</div>
+    </div>
+  </div>
+  <div class="col-md-3 col-6 mb-2">
+    <div class="card text-center py-2">
+      <div class="fw-bold text-muted small">이상 발생</div>
+      <div class="fs-3 fw-bold text-danger">{{ abnormalities|length }}</div>
+    </div>
+  </div>
+  <div class="col-md-3 col-6 mb-2">
+    <div class="card text-center py-2">
+      <div class="fw-bold text-muted small">停機 인계</div>
+      <div class="fs-3 fw-bold text-warning">
+        {% set ho_count = namespace(v=0) %}
+        {% for m in machine_list %}{% if machine_status[m].handover %}{% set ho_count.v = ho_count.v+1 %}{% endif %}{% endfor %}
+        {{ ho_count.v }}
+      </div>
+    </div>
+  </div>
+</div>
+
+<!-- Machine Status Grid -->
+{% set groups = [('A Group', ['A07','A08','A09','A10','A11','A12']),
+                 ('B Group', ['B14','B15','B16','B17','B18','B19','B20','B21','B22','B23','B24']),
+                 ('C Group', ['C25','C26','C27','C29','C30'])] %}
+{% for group_name, machines in groups %}
+<div class="card mb-3">
+  <div class="card-header" style="background: linear-gradient(135deg,#1F4E79,#2E75B6);color:white;">
+    <i class="bi bi-cpu"></i> {{ group_name }}
+  </div>
+  <div class="card-body p-2">
+    <div class="row g-2">
+      {% for m in machines %}
+      {% if m in machine_status %}
+      <div class="col-md-2 col-4">
+        <div class="card machine-card h-100" style="border:2px solid {% if machine_status[m].morning and machine_status[m].night %}#70AD47{% elif machine_status[m].morning or machine_status[m].night %}#FFC000{% else %}#dee2e6{% endif %}">
+          <div class="card-body p-2 text-center">
+            <div class="fw-bold mb-1" style="font-size:1.1rem;">{{ m }}</div>
+            <div class="d-flex justify-content-center gap-1 mb-2">
+              <a href="/entry/{{ m }}/morning?date={{ date_str }}"
+                 class="btn btn-xs py-0 px-1 {% if machine_status[m].morning %}btn-success{% else %}btn-outline-secondary{% endif %}"
+                 style="font-size:0.7rem;" title="早班 입력">
+                早班
+              </a>
+              <a href="/entry/{{ m }}/night?date={{ date_str }}"
+                 class="btn btn-xs py-0 px-1 {% if machine_status[m].night %}btn-success{% else %}btn-outline-secondary{% endif %}"
+                 style="font-size:0.7rem;" title="夜班 입력">
+                夜班
+              </a>
+              <a href="/entry/{{ m }}/first_piece?date={{ date_str }}"
+                 class="btn btn-xs py-0 px-1 {% if machine_status[m].first_piece %}btn-info{% else %}btn-outline-info{% endif %}"
+                 style="font-size:0.7rem;" title="首件 입력">
+                首件
+              </a>
+            </div>
+            {% if machine_status[m].handover %}
+            <span class="badge bg-warning text-dark" style="font-size:0.6rem;">停機</span>
+            {% endif %}
+          </div>
+        </div>
+      </div>
+      {% endif %}
+      {% endfor %}
+    </div>
+  </div>
+</div>
+{% endfor %}
+
+<!-- 異常 記錄 -->
+{% if abnormalities %}
+<div class="card mb-3">
+  <div class="card-header bg-danger text-white">
+    <i class="bi bi-exclamation-triangle-fill"></i> 이상 발생 기록 ({{ date_str }})
+  </div>
+  <div class="card-body p-0">
+    <div class="table-responsive">
+      <table class="table table-sm table-hover mb-0">
+        <thead>
+          <tr><th>機台</th><th>班別</th><th>異常內容</th><th>原因</th><th>對策</th><th>時間</th></tr>
+        </thead>
+        <tbody>
+          {% for abn in abnormalities %}
+          <tr>
+            <td><span class="badge bg-danger">{{ abn.machine_id }}</span></td>
+            <td>{{ shift_labels.get(abn.shift, abn.shift) }}</td>
+            <td>{{ abn.description }}</td>
+            <td>{{ abn.cause }}</td>
+            <td>{{ abn.countermeasure }}</td>
+            <td style="font-size:0.75rem;">{{ abn.created_at[:16] if abn.created_at else '' }}</td>
+          </tr>
+          {% endfor %}
+        </tbody>
+      </table>
+    </div>
+  </div>
+</div>
+{% endif %}
+
+<!-- Quick Links -->
+<div class="row mt-3">
+  <div class="col-12">
+    <a href="/entry/select" class="btn btn-primary me-2 mb-2">
+      <i class="bi bi-pencil-square"></i> QC 데이터 입력
+    </a>
+    <a href="/handover?date={{ date_str }}" class="btn btn-warning me-2 mb-2">
+      <i class="bi bi-arrow-left-right"></i> 停機&尾批交接 입력
+    </a>
+    <a href="/abnormality?date={{ date_str }}" class="btn btn-danger me-2 mb-2">
+      <i class="bi bi-plus-circle"></i> 異常 발생 입력
+    </a>
+    <a href="/view/{{ date_str }}" class="btn btn-info me-2 mb-2">
+      <i class="bi bi-eye"></i> 전체 데이터 보기
+    </a>
+    <a href="/export/{{ date_str }}" class="btn btn-success me-2 mb-2">
+      <i class="bi bi-file-earmark-excel"></i> Excel 내보내기
+    </a>
+  </div>
+</div>
+{% endblock %}
+{% block scripts %}
+<script>
+function gotoDate() {
+  var d = document.getElementById('dateSelect').value;
+  if(d) window.location.href = '/dashboard/' + d;
+}
+// 30초마다 자동 새로고침
+{% if date_str == today %}
+setInterval(function(){ location.reload(); }, 30000);
+{% endif %}
+</script>
+{% endblock %}

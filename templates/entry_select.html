@@ -1,0 +1,61 @@
+{% extends "base.html" %}
+{% block content %}
+<div class="row mb-3">
+  <div class="col-12">
+    <h4><i class="bi bi-pencil-square"></i> 데이터 입력 - 기계/반 선택</h4>
+  </div>
+</div>
+
+<div class="card mb-3">
+  <div class="card-body">
+    <div class="row align-items-center">
+      <div class="col-md-3">
+        <label class="form-label">날짜 선택</label>
+        <input type="date" class="form-control" id="dateInput" value="{{ today }}">
+      </div>
+      <div class="col-md-3 mt-3 mt-md-0">
+        <label class="form-label">反別 선택</label>
+        <select class="form-select" id="shiftSelect">
+          <option value="morning">早班 (오전)</option>
+          <option value="night">夜班 (야간)</option>
+          <option value="first_piece">首件 (첫 번째)</option>
+        </select>
+      </div>
+    </div>
+  </div>
+</div>
+
+{% set groups = [('A Group', ['A07','A08','A09','A10','A11','A12']),
+                 ('B Group', ['B14','B15','B16','B17','B18','B19','B20','B21','B22','B23','B24']),
+                 ('C Group', ['C25','C26','C27','C29','C30'])] %}
+{% for group_name, machines in groups %}
+<div class="card mb-3">
+  <div class="card-header" style="background:linear-gradient(135deg,#1F4E79,#2E75B6);color:white;">
+    {{ group_name }}
+  </div>
+  <div class="card-body">
+    <div class="d-flex flex-wrap gap-2">
+      {% for m in machines %}
+      <button class="btn btn-outline-primary machine-btn" style="min-width:80px;"
+              onclick="gotoEntry('{{ m }}')">
+        <i class="bi bi-cpu"></i> {{ m }}
+      </button>
+      {% endfor %}
+    </div>
+  </div>
+</div>
+{% endfor %}
+
+<div class="mt-3">
+  <a href="/" class="btn btn-outline-secondary"><i class="bi bi-arrow-left"></i> 대시보드로</a>
+</div>
+{% endblock %}
+{% block scripts %}
+<script>
+function gotoEntry(machine) {
+  var d = document.getElementById('dateInput').value;
+  var s = document.getElementById('shiftSelect').value;
+  window.location.href = '/entry/' + machine + '/' + s + '?date=' + d;
+}
+</script>
+{% endblock %}

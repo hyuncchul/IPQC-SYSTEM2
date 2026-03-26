@@ -1,0 +1,87 @@
+{% extends "base.html" %}
+{% block content %}
+<div class="row mb-3 align-items-center">
+  <div class="col">
+    <h4><i class="bi bi-exclamation-triangle"></i> 異常 발생 입력 / 조회</h4>
+  </div>
+  <div class="col-auto">
+    <a href="/" class="btn btn-sm btn-outline-secondary"><i class="bi bi-arrow-left"></i> 대시보드</a>
+  </div>
+</div>
+
+<!-- 입력 폼 -->
+<div class="card mb-3">
+  <div class="card-header bg-danger text-white">새 이상 발생 입력</div>
+  <div class="card-body">
+    <form method="POST" action="/abnormality">
+      <input type="hidden" name="date" value="{{ date_str }}">
+      <div class="row g-2">
+        <div class="col-md-2">
+          <label class="form-label">機台</label>
+          <select class="form-select" name="machine_id" required>
+            <option value="">선택</option>
+            {% for m in machine_list %}
+            <option>{{ m }}</option>
+            {% endfor %}
+          </select>
+        </div>
+        <div class="col-md-2">
+          <label class="form-label">班別</label>
+          <select class="form-select" name="shift">
+            <option value="morning">早班</option>
+            <option value="night">夜班</option>
+            <option value="first_piece">首件</option>
+          </select>
+        </div>
+        <div class="col-md-8">
+          <label class="form-label">異常 내용 <span class="text-danger">*</span></label>
+          <input type="text" class="form-control" name="description" required placeholder="이상 발생 내용을 상세히 입력하세요">
+        </div>
+        <div class="col-md-6">
+          <label class="form-label">원인 분석</label>
+          <textarea class="form-control" name="cause" rows="2" placeholder="원인을 입력하세요"></textarea>
+        </div>
+        <div class="col-md-6">
+          <label class="form-label">대책 / 조치 사항</label>
+          <textarea class="form-control" name="countermeasure" rows="2" placeholder="대책 및 조치 사항을 입력하세요"></textarea>
+        </div>
+        <div class="col-12">
+          <button type="submit" class="btn btn-danger"><i class="bi bi-save"></i> 저장</button>
+        </div>
+      </div>
+    </form>
+  </div>
+</div>
+
+<!-- 이상 이력 -->
+{% if abnormalities %}
+<div class="card">
+  <div class="card-header bg-warning text-dark">
+    <i class="bi bi-list-ul"></i> {{ date_str }} 이상 발생 이력 ({{ abnormalities|length }}건)
+  </div>
+  <div class="card-body p-0">
+    <div class="table-responsive">
+      <table class="table table-sm table-striped mb-0">
+        <thead>
+          <tr><th>機台</th><th>班別</th><th>異常 내용</th><th>원인</th><th>대책</th><th>입력시간</th></tr>
+        </thead>
+        <tbody>
+          {% for abn in abnormalities %}
+          <tr>
+            <td><span class="badge bg-danger">{{ abn.machine_id }}</span></td>
+            <td>{{ shifts.get(abn.shift, abn.shift) }}</td>
+            <td>{{ abn.description }}</td>
+            <td>{{ abn.cause or '-' }}</td>
+            <td>{{ abn.countermeasure or '-' }}</td>
+            <td style="font-size:0.75rem;">{{ abn.created_at[:16] if abn.created_at else '' }}</td>
+          </tr>
+          {% endfor %}
+        </tbody>
+      </table>
+    </div>
+  </div>
+</div>
+{% else %}
+<div class="alert alert-info">{{ date_str }} 이상 발생 기록이 없습니다.</div>
+{% endif %}
+{% endblock %}

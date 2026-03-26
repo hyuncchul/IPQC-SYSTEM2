@@ -1,0 +1,154 @@
+{% extends "base.html" %}
+{% block content %}
+<div class="row mb-3 align-items-center">
+  <div class="col">
+    <h4><i class="bi bi-eye"></i> QC 데이터 전체 보기 - {{ date_str }}</h4>
+  </div>
+  <div class="col-auto">
+    <a href="/export/{{ date_str }}" class="btn btn-success me-2">
+      <i class="bi bi-file-earmark-excel"></i> Excel 다운로드
+    </a>
+    <a href="/history" class="btn btn-outline-secondary">이력 목록</a>
+  </div>
+</div>
+
+<!-- 停機交接 -->
+{% if all_data.handovers %}
+<div class="card mb-3">
+  <div class="card-header bg-warning text-dark"><i class="bi bi-arrow-left-right"></i> 停機&尾批交接</div>
+  <div class="card-body p-0">
+    <table class="table table-sm mb-0">
+      <thead><tr><th>機台</th><th>尾批 Lot#</th><th>停機 원인</th><th>입력시간</th></tr></thead>
+      <tbody>
+        {% for ho in all_data.handovers %}
+        {% if ho.last_batch or ho.reason %}
+        <tr>
+          <td><span class="badge bg-warning text-dark">{{ ho.machine_id }}</span></td>
+          <td>{{ ho.last_batch or '-' }}</td>
+          <td>{{ ho.reason or '-' }}</td>
+          <td style="font-size:0.75rem;">{{ ho.updated_at[:16] if ho.updated_at else '' }}</td>
+        </tr>
+        {% endif %}
+        {% endfor %}
+      </tbody>
+    </table>
+  </div>
+</div>
+{% endif %}
+
+<!-- Per machine entries -->
+{% for item in all_data.entries %}
+{% set entry = item.entry %}
+<div class="card mb-3">
+  <div class="card-header d-flex justify-content-between align-items-center"
+       style="background:linear-gradient(135deg,#1F4E79,#2E75B6);color:white;">
+    <span>
+      <strong>{{ entry.machine_id }}</strong>
+      <span class="badge bg-light text-dark ms-2">{{ shift_labels.get(entry.shift, entry.shift) }}</span>
+      {% if entry.part_no %}<small class="ms-2">Part: {{ entry.part_no }}</small>{% endif %}
+      {% if entry.lot_no %}<small class="ms-2">Lot: {{ entry.lot_no }}</small>{% endif %}
+      {% if entry.submitted_by %}<small class="ms-2">작업자: {{ entry.submitted_by }}</small>{% endif %}
+    </span>
+    <a href="/entry/{{ entry.machine_id }}/{{ entry.shift }}?date={{ date_str }}"
+       class="btn btn-sm btn-light">수정</a>
+  </div>
+  <div class="card-body p-2">
+    <div class="row g-2">
+      <!-- Visual -->
+      {% if item.visual %}
+      <div class="col-md-4">
+        <div class="fw-bold text-primary small mb-1">外觀注意事項</div>
+        <table class="table table-xs table-bordered mb-0" style="font-size:0.78rem;">
+          <thead><tr><th>#</th><th>항목</th><th>결과</th></tr></thead>
+          <tbody>
+            {% for v in item.visual %}
+            <tr>
+              <td>{{ v.item_index+1 }}</td>
+              <td style="max-width:150px;overflow:hidden;text-overflow:ellipsis;white-space:nowrap;" title="{{ v.item_name }}">{{ v.item_name[:30] }}{% if v.item_name|length>30 %}...{% endif %}</td>
+              <td>
+                {% if v.result %}
+                <span class="badge {% if v.result.upper() in ['OK','O','PASS'] %}bg-success{% elif v.result.upper() in ['NG','X','FAIL'] %}bg-danger{% else %}bg-secondary{% endif %}">
+                  {{ v.result }}
+                </span>
+                {% endif %}
+                {% if v.rejected_lot %}<span class="text-danger">⚠{{ v.rejected_lot }}</span>{% endif %}
+              </td>
+            </tr>
+            {% endfor %}
+          </tbody>
+        </table>
+      </div>
+      {% endif %}
+      <!-- EOL -->
+      {% if item.eol %}
+      <div class="col-md-4">
+        <div class="fw-bold text-primary small mb-1">EOL</div>
+        <table class="table table-xs table-bordered mb-0" style="font-size:0.78rem;">
+          <thead><tr><th>#</th><th>항목</th><th>결과</th></tr></thead>
+          <tbody>
+            {% for v in item.eol %}
+            <tr>
+              <td>{{ v.item_index+1 }}</td>
+              <td>{{ v.item_name[:25] }}</td>
+              <td>
+                <span class="badge {% if v.result and v.result.upper() in ['OK','O','PASS'] %}bg-success{% elif v.result and v.result.upper() in ['NG','X','FAIL'] %}bg-danger{% else %}bg-secondary{% endif %}">
+                  {{ v.result or '-' }}
+                </span>
+              </td>
+            </tr>
+            {% endfor %}
+          </tbody>
+        </table>
+      </div>
+      {% endif %}
+      <!-- Dims -->
+      {% if item.dims %}
+      <div class="col-md-4">
+        <div class="fw-bold text-primary small mb-1">尺寸 측정값</div>
+        <table class="table table-xs table-bordered mb-0" style="font-size:0.78rem;">
+          <thead><tr><th>#</th><th>항목</th><th>측정값</th></tr></thead>
+          <tbody>
+            {% for v in item.dims %}
+            <tr>
+              <td>{{ v.item_index+1 }}</td>
+              <td>{{ v.item_name[:20] }}</td>
+              <td>{{ v.result or '-' }}</td>
+            </tr>
+            {% endfor %}
+          </tbody>
+        </table>
+      </div>
+      {% endif %}
+    </div>
+    {% if entry.notes %}
+    <div class="mt-1 text-muted small"><i class="bi bi-chat-text"></i> 비고: {{ entry.notes }}</div>
+    {% endif %}
+  </div>
+</div>
+{% else %}
+<div class="alert alert-info">{{ date_str }} 날짜에 입력된 데이터가 없습니다.</div>
+{% endfor %}
+
+<!-- 이상기록 -->
+{% if all_data.abnormalities %}
+<div class="card mb-3">
+  <div class="card-header bg-danger text-white"><i class="bi bi-exclamation-triangle-fill"></i> 異常 발생 기록</div>
+  <div class="card-body p-0">
+    <table class="table table-sm mb-0">
+      <thead><tr><th>機台</th><th>班別</th><th>異常내용</th><th>원인</th><th>대책</th></tr></thead>
+      <tbody>
+        {% for abn in all_data.abnormalities %}
+        <tr>
+          <td><span class="badge bg-danger">{{ abn.machine_id }}</span></td>
+          <td>{{ shift_labels.get(abn.shift, abn.shift) }}</td>
+          <td>{{ abn.description }}</td>
+          <td>{{ abn.cause or '-' }}</td>
+          <td>{{ abn.countermeasure or '-' }}</td>
+        </tr>
+        {% endfor %}
+      </tbody>
+    </table>
+  </div>
+</div>
+{% endif %}
+{% endblock %}

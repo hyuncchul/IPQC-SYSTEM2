@@ -1,0 +1,71 @@
+<!DOCTYPE html>
+<html lang="zh-TW">
+<head>
+<meta charset="UTF-8">
+<meta name="viewport" content="width=device-width, initial-scale=1.0">
+<title>IPQC QC 管理系統</title>
+<link href="https://cdn.jsdelivr.net/npm/bootstrap@5.3.0/dist/css/bootstrap.min.css" rel="stylesheet">
+<link href="https://cdn.jsdelivr.net/npm/bootstrap-icons@1.10.0/font/bootstrap-icons.css" rel="stylesheet">
+<style>
+  body { background: #f4f6f9; font-family: 'Arial', sans-serif; }
+  .navbar { background: linear-gradient(135deg, #1F4E79 0%, #2E75B6 100%) !important; }
+  .navbar-brand { font-weight: bold; font-size: 1.2rem; }
+  .card { border: none; box-shadow: 0 2px 8px rgba(0,0,0,0.1); border-radius: 10px; }
+  .card-header { border-radius: 10px 10px 0 0 !important; font-weight: bold; }
+  .btn-primary { background: #1F4E79; border-color: #1F4E79; }
+  .btn-primary:hover { background: #2E75B6; border-color: #2E75B6; }
+  .machine-card { transition: transform 0.2s; cursor: pointer; }
+  .machine-card:hover { transform: translateY(-2px); }
+  .status-done { background: #70AD47 !important; color: white; }
+  .status-pending { background: #FFF2CC; color: #7F6000; }
+  .status-na { background: #f8f9fa; color: #6c757d; }
+  .section-header { background: linear-gradient(135deg, #2E75B6, #1F4E79); color: white; padding: 8px 15px; border-radius: 5px; margin-bottom: 10px; font-weight: bold; }
+  .form-label { font-weight: 600; font-size: 0.9rem; }
+  .result-ok { background-color: #d4edda !important; }
+  .result-ng { background-color: #f8d7da !important; }
+  .flash-msg { position: fixed; top: 70px; right: 20px; z-index: 9999; min-width: 300px; }
+  .table th { background: #1F4E79; color: white; white-space: nowrap; }
+  @media (max-width: 768px) {
+    .machine-btn { font-size: 0.8rem; padding: 4px 8px; }
+    .container { padding: 8px; }
+  }
+</style>
+</head>
+<body>
+<nav class="navbar navbar-expand-lg navbar-dark">
+  <div class="container-fluid">
+    <a class="navbar-brand" href="/"><i class="bi bi-clipboard-check"></i> IPQC QC 管理系統</a>
+    <button class="navbar-toggler" type="button" data-bs-toggle="collapse" data-bs-target="#navMenu">
+      <span class="navbar-toggler-icon"></span>
+    </button>
+    <div class="collapse navbar-collapse" id="navMenu">
+      <ul class="navbar-nav ms-auto">
+        <li class="nav-item"><a class="nav-link" href="/"><i class="bi bi-speedometer2"></i> 대시보드</a></li>
+        <li class="nav-item"><a class="nav-link" href="/entry/select"><i class="bi bi-pencil-square"></i> 데이터 입력</a></li>
+        <li class="nav-item"><a class="nav-link" href="/handover"><i class="bi bi-arrow-left-right"></i> 停機交接</a></li>
+        <li class="nav-item"><a class="nav-link" href="/abnormality"><i class="bi bi-exclamation-triangle"></i> 異常記錄</a></li>
+        <li class="nav-item"><a class="nav-link" href="/history"><i class="bi bi-clock-history"></i> 이력조회</a></li>
+      </ul>
+    </div>
+  </div>
+</nav>
+
+<div class="flash-msg">
+{% with messages = get_flashed_messages(with_categories=true) %}
+  {% for category, message in messages %}
+    <div class="alert alert-{{ category }} alert-dismissible fade show" role="alert">
+      {{ message }}
+      <button type="button" class="btn-close" data-bs-dismiss="alert"></button>
+    </div>
+  {% endfor %}
+{% endwith %}
+</div>
+
+<div class="container-fluid py-3">
+{% block content %}{% endblock %}
+</div>
+
+<script src="https://cdn.jsdelivr.net/npm/bootstrap@5.3.0/dist/js/bootstrap.bundle.min.js"></script>
+{% block scripts %}{% endblock %}
+</body>
+</html>

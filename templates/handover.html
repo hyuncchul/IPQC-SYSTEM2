@@ -1,0 +1,65 @@
+{% extends "base.html" %}
+{% block content %}
+<div class="row mb-3 align-items-center">
+  <div class="col">
+    <h4><i class="bi bi-arrow-left-right"></i> 停機&尾批交接 입력</h4>
+  </div>
+  <div class="col-auto">
+    <a href="/" class="btn btn-sm btn-outline-secondary"><i class="bi bi-arrow-left"></i> 대시보드</a>
+  </div>
+</div>
+
+<form method="POST" action="/handover">
+  <input type="hidden" name="date" value="{{ date_str }}">
+
+  <div class="card mb-2">
+    <div class="card-body py-2">
+      <div class="row align-items-center">
+        <div class="col-md-3">
+          <label class="form-label mb-0">날짜</label>
+          <input type="date" class="form-control form-control-sm" name="date_display" value="{{ date_str }}" readonly>
+        </div>
+      </div>
+    </div>
+  </div>
+
+  {% set groups = [('A Group', ['A07','A08','A09','A10','A11','A12']),
+                   ('B Group', ['B14','B15','B16','B17','B18','B19','B20','B21','B22','B23','B24']),
+                   ('C Group', ['C25','C26','C27','C29','C30'])] %}
+  {% for group_name, machines in groups %}
+  <div class="card mb-3">
+    <div class="card-header" style="background:linear-gradient(135deg,#1F4E79,#2E75B6);color:white;">{{ group_name }}</div>
+    <div class="card-body p-0">
+      <div class="table-responsive">
+        <table class="table table-sm table-hover mb-0">
+          <thead>
+            <tr><th>機台</th><th>尾批 Lot#</th><th>停機 원인</th></tr>
+          </thead>
+          <tbody>
+            {% for m in machines %}
+            {% set ho = handover_map.get(m, {}) %}
+            <tr>
+              <td><span class="badge bg-primary">{{ m }}</span></td>
+              <td>
+                <input type="text" class="form-control form-control-sm" name="last_batch_{{ m }}"
+                       value="{{ ho.get('last_batch','') if ho else '' }}" placeholder="마지막 Lot#">
+              </td>
+              <td>
+                <input type="text" class="form-control form-control-sm" name="reason_{{ m }}"
+                       value="{{ ho.get('reason','') if ho else '' }}" placeholder="停機 원인 (없으면 비워두기)">
+              </td>
+            </tr>
+            {% endfor %}
+          </tbody>
+        </table>
+      </div>
+    </div>
+  </div>
+  {% endfor %}
+
+  <div class="d-flex gap-2 mb-4">
+    <button type="submit" class="btn btn-primary btn-lg"><i class="bi bi-save"></i> 저장</button>
+    <a href="/" class="btn btn-outline-secondary btn-lg">취소</a>
+  </div>
+</form>
+{% endblock %}

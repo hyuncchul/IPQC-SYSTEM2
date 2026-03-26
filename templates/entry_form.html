@@ -1,0 +1,193 @@
+{% extends "base.html" %}
+{% block content %}
+<div class="row mb-2 align-items-center">
+  <div class="col">
+    <h4>
+      <span class="badge bg-primary fs-5">{{ machine_id }}</span>
+      <span class="badge bg-secondary fs-6 ms-2">{{ shift_label }}</span>
+      <small class="text-muted ms-2">{{ date_str }}</small>
+      {% if existing %}<span class="badge bg-warning text-dark ms-2">수정</span>{% endif %}
+    </h4>
+  </div>
+  <div class="col-auto">
+    <a href="/" class="btn btn-sm btn-outline-secondary"><i class="bi bi-arrow-left"></i> 대시보드</a>
+  </div>
+</div>
+
+<form method="POST" action="/entry/{{ machine_id }}/{{ shift }}">
+  <input type="hidden" name="date" value="{{ date_str }}">
+
+  <!-- 基本 Info -->
+  <div class="card mb-3">
+    <div class="card-header" style="background:#2E75B6;color:white;">基本 정보</div>
+    <div class="card-body">
+      <div class="row g-2">
+        <div class="col-md-3">
+          <label class="form-label">Part No.</label>
+          <input type="text" class="form-control" name="part_no"
+                 value="{{ existing.entry.part_no if existing else '' }}" placeholder="Part No.">
+        </div>
+        <div class="col-md-3">
+          <label class="form-label">Lot No.</label>
+          <input type="text" class="form-control" name="lot_no"
+                 value="{{ existing.entry.lot_no if existing else '' }}" placeholder="Lot No.">
+        </div>
+        <div class="col-md-3">
+          <label class="form-label">作業者 (이름)</label>
+          <input type="text" class="form-control" name="submitted_by"
+                 value="{{ existing.entry.submitted_by if existing else '' }}" placeholder="이름">
+        </div>
+        <div class="col-md-3">
+          <label class="form-label">備註 (메모)</label>
+          <input type="text" class="form-control" name="notes"
+                 value="{{ existing.entry.notes if existing else '' }}" placeholder="특이사항">
+        </div>
+      </div>
+    </div>
+  </div>
+
+  <!-- 外觀 檢查 -->
+  <div class="card mb-3">
+    <div class="card-header" style="background:#2E75B6;color:white;">
+      <i class="bi bi-eye"></i> 外觀注意事項 (외관검사)
+    </div>
+    <div class="card-body p-0">
+      <div class="table-responsive">
+        <table class="table table-sm table-hover mb-0">
+          <thead>
+            <tr>
+              <th style="width:40px;">No.</th>
+              <th>검사 항목</th>
+              <th style="width:200px;">결과 (OK/NG/x/o 또는 수치)</th>
+              <th style="width:160px;">拒收 Lot#</th>
+            </tr>
+          </thead>
+          <tbody>
+            {% for i, item in enumerate(config.visual) %}
+            {% set ev = existing.visual[i] if existing and existing.visual|length > i else {} %}
+            <tr>
+              <td class="text-center">{{ i+1 }}</td>
+              <td style="font-size:0.85rem;">{{ item }}</td>
+              <td>
+                <input type="text" class="form-control form-control-sm result-input"
+                       name="visual_result_{{ i }}"
+                       value="{{ ev.result if ev else '' }}"
+                       placeholder="OK / NG / x / o"
+                       oninput="colorResult(this)">
+              </td>
+              <td>
+                <input type="text" class="form-control form-control-sm"
+                       name="visual_lot_{{ i }}"
+                       value="{{ ev.rejected_lot if ev else '' }}"
+                       placeholder="Lot# (있으면)">
+              </td>
+            </tr>
+            {% endfor %}
+          </tbody>
+        </table>
+      </div>
+    </div>
+  </div>
+
+  <!-- EOL 檢查 -->
+  <div class="card mb-3">
+    <div class="card-header" style="background:#2E75B6;color:white;">
+      <i class="bi bi-lightning"></i> EOL 檢查
+    </div>
+    <div class="card-body p-0">
+      <div class="table-responsive">
+        <table class="table table-sm table-hover mb-0">
+          <thead>
+            <tr>
+              <th style="width:40px;">No.</th>
+              <th>검사 항목</th>
+              <th style="width:200px;">결과</th>
+              <th style="width:160px;">拒收 Lot#</th>
+            </tr>
+          </thead>
+          <tbody>
+            {% for i, item in enumerate(config.eol) %}
+            {% set ev = existing.eol[i] if existing and existing.eol|length > i else {} %}
+            <tr>
+              <td class="text-center">{{ i+1 }}</td>
+              <td style="font-size:0.85rem;">{{ item }}</td>
+              <td>
+                <input type="text" class="form-control form-control-sm result-input"
+                       name="eol_result_{{ i }}"
+                       value="{{ ev.result if ev else '' }}"
+                       placeholder="수치 또는 OK/NG"
+                       oninput="colorResult(this)">
+              </td>
+              <td>
+                <input type="text" class="form-control form-control-sm"
+                       name="eol_lot_{{ i }}"
+                       value="{{ ev.rejected_lot if ev else '' }}"
+                       placeholder="Lot# (있으면)">
+              </td>
+            </tr>
+            {% endfor %}
+          </tbody>
+        </table>
+      </div>
+    </div>
+  </div>
+
+  <!-- 尺寸 測定 -->
+  <div class="card mb-3">
+    <div class="card-header" style="background:#2E75B6;color:white;">
+      <i class="bi bi-rulers"></i> 尺寸注意事項 (치수 측정)
+    </div>
+    <div class="card-body p-0">
+      <div class="table-responsive">
+        <table class="table table-sm table-hover mb-0">
+          <thead>
+            <tr>
+              <th style="width:40px;">No.</th>
+              <th>측정 항목</th>
+              <th style="width:250px;">측정값</th>
+            </tr>
+          </thead>
+          <tbody>
+            {% for i, item in enumerate(config.dims) %}
+            {% set ev = existing.dims[i] if existing and existing.dims|length > i else {} %}
+            <tr>
+              <td class="text-center">{{ i+1 }}</td>
+              <td style="font-size:0.85rem;">{{ item }}</td>
+              <td>
+                <input type="text" class="form-control form-control-sm"
+                       name="dim_result_{{ i }}"
+                       value="{{ ev.result if ev else '' }}"
+                       placeholder="수치 입력 (예: 315.00)">
+              </td>
+            </tr>
+            {% endfor %}
+          </tbody>
+        </table>
+      </div>
+    </div>
+  </div>
+
+  <div class="d-flex gap-2 mb-4">
+    <button type="submit" class="btn btn-primary btn-lg">
+      <i class="bi bi-save"></i> 저장
+    </button>
+    <a href="/" class="btn btn-outline-secondary btn-lg">취소</a>
+    <a href="/abnormality?date={{ date_str }}" class="btn btn-danger btn-lg ms-auto">
+      <i class="bi bi-exclamation-triangle"></i> 이상 발생 입력
+    </a>
+  </div>
+</form>
+{% endblock %}
+{% block scripts %}
+<script>
+// enumerate 필터 추가
+function colorResult(input) {
+  var v = input.value.trim().toUpperCase();
+  input.classList.remove('result-ok','result-ng');
+  if (['OK','O','PASS'].includes(v)) input.classList.add('result-ok');
+  else if (['NG','X','FAIL','拒收'].includes(v)) input.classList.add('result-ng');
+}
+// 페이지 로드 시 기존 색상 적용
+document.querySelectorAll('.result-input').forEach(function(el){ colorResult(el); });
+</script>
+{% endblock %}
